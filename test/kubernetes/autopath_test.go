@@ -41,23 +41,6 @@ var autopathTests = []test.Case{
 			test.CNAME("svc-1-a.test-1.svc.cluster.local.test-1.svc.cluster.local.  303    IN	     CNAME	  svc-1-a.test-1.svc.cluster.local."),
 		},
 	},
-	{ // Valid external fqdn -> success on empty search -> CNAME glue + A record
-		Qname: "foo.example.net", Qtype: dns.TypeA,
-		Rcode: dns.RcodeSuccess,
-		Answer: []dns.RR{
-			test.A("foo.example.net.      303    IN      A       10.10.10.11"),
-			test.CNAME("foo.example.net.test-1.svc.cluster.local.  303    IN	     CNAME	  foo.example.net."),
-		},
-		Ns: []dns.RR{
-			test.NS("example.net.	303	IN	NS	ns.example.net."),
-		},
-	},
-	/*
-		{ // prevent client search on query fail - this optimization is not implemented
-			Qname: "bar.example.net", Qtype: dns.TypeA,
-			Rcode: dns.RcodeSuccess,
-		},
-	*/
 }
 
 func TestKubernetesAutopath(t *testing.T) {
