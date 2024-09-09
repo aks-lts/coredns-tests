@@ -296,7 +296,7 @@ metadata:
 spec:
   containers:
     - name: pause
-      image: gcr.io/google_containers/pause-amd64:3.0
+      image: k8s.gcr.io/pause:3.9
       ports:
         - containerPort: 80
           name: http
@@ -326,7 +326,7 @@ metadata:
 spec:
   containers:
     - name: pause
-      image: gcr.io/google_containers/pause-amd64:3.0
+      image: k8s.gcr.io/pause:3.9
       ports:
         - containerPort: 80
           name: http
