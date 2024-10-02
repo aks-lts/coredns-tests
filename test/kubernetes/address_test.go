@@ -74,11 +74,11 @@ var dnsTestCasesA = []test.Case{
 			test.A("kube-dns.kube-system.svc.cluster.local. 303 IN A 10.96.0.10"),
 		},
 	},
-	// { // An A record query external domain with response size greater than 512 bytes should be truncated.
-	// 	Qname: "corednse2etestaks.com.",
-	// 	Qtype: dns.TypeA,
-	// 	Rcode: dns.RcodeSuccess,
-	// },
+	{ // An A record query external domain with response size greater than 512 bytes should be truncated.
+		Qname: "corednse2etestaks.com.",
+		Qtype: dns.TypeA,
+		Rcode: dns.RcodeSuccess,
+	},
 }
 
 var newObjectTests = []test.Case{
