@@ -56,6 +56,40 @@ func DoIntegrationTest(tc test.Case, namespace string) (*dns.Msg, error) {
 	return results[0], nil
 }
 
+// DoIntegrationTest executes a test case
+func DoIntegrationTestWithNoEdns(tc test.Case, namespace string, DNSServer string) (*dns.Msg, error) {
+	digCmd := "dig -t " + dns.TypeToString[tc.Qtype] + " " + tc.Qname + " +ignore +noedns +search +noshowsearch +time=10 +tries=6 @" + DNSServer
+
+	// attach to client and execute query.
+	var cmdout string
+	var err error
+	tries := 3
+	for {
+		cmdout, err = Kubectl("-n " + namespace + " exec " + clientName + " -- " + digCmd)
+		if err == nil {
+			break
+		}
+		tries = tries - 1
+		if tries == 0 {
+			return nil, errors.New("failed to execute query '" + digCmd + "' got error: '" + err.Error() + "'")
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	results, err := ParseDigResponse(cmdout)
+
+	if err != nil {
+		return nil, errors.New("failed to parse result: (" + err.Error() + ")" + cmdout)
+	}
+	if len(results) != 1 {
+		resultStr := ""
+		for i, r := range results {
+			resultStr += fmt.Sprintf("\nResponse %v\n", i) + r.String()
+		}
+		return nil, errors.New("expected 1 query attempt, observed " + strconv.Itoa(len(results)) + resultStr)
+	}
+	return results[0], nil
+}
+
 // DoIntegrationTests executes test cases
 func DoIntegrationTests(t *testing.T, testCases []test.Case, namespace string) {
 	err := StartClientPod(namespace)
@@ -190,7 +224,7 @@ func LoadCorefileAndZonefile(corefile, zonefile string, restart bool) error {
 		// force coredns pod reload the config
 		Kubectl("-n kube-system delete pods -l k8s-app=kube-dns")
 
-		return WaitReady(30)
+		//return WaitReady(30)
 	}
 	return nil
 }
@@ -390,6 +424,10 @@ func parseDig(s *bufio.Scanner) (*dns.Msg, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = parseDigFlags(s, m)
+	if err != nil {
+		return nil, err
+	}
 	err = parseDigQuestion(s, m)
 	if err != nil {
 		return nil, err
@@ -430,6 +468,53 @@ func parseDigHeader(s *bufio.Scanner, m *dns.Msg) error {
 			m.MsgHdr.Id = uint16(i)
 		}
 	}
+	return nil
+}
+
+func parseDigFlags(s *bufio.Scanner, m *dns.Msg) error {
+
+	// Looking for the flags section of the header.
+	flagsSection := ";; flags: "
+
+	// Break out of the loop when the flags section is found.
+	for {
+		if strings.HasPrefix(s.Text(), flagsSection) {
+			break
+		}
+		if !s.Scan() {
+			return errors.New("flags section not found")
+		}
+	}
+
+	// Copy the flags section of the header to a local variable.
+	f := s.Text()
+
+	// Extract the flags part of the header.
+	flagsStart := strings.Index(f, "flags: ") + len("flags: ")
+	flagsEnd := strings.Index(f, "; QUERY:")
+	flagsStr := f[flagsStart:flagsEnd]
+
+	// Split the flags string around each instance of white space characters.
+	flags := strings.Fields(flagsStr)
+
+	// Set the flags in the dns.Msg object.
+	for _, flag := range flags {
+		switch flag {
+		case "qr":
+			m.Response = true
+		case "tc":
+			m.Truncated = true
+		case "rd":
+			m.RecursionDesired = true
+		case "ad":
+			m.AuthenticatedData = true
+		case "ra":
+			m.RecursionAvailable = true
+		case "aa":
+			m.Authoritative = true
+		}
+	}
+
 	return nil
 }
 
