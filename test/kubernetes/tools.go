@@ -94,7 +94,8 @@ func DoIntegrationTests(t *testing.T, testCases []test.Case, namespace string) {
 
 // StartClientPod starts a dns client pod in the namespace
 func StartClientPod(namespace string) error {
-	_, err := Kubectl("-n " + namespace + " run " + clientName + " --image=infoblox/dnstools --restart=Never -- -c 'while [ 1 ]; do sleep 100; done'")
+	_, err := Kubectl("-n " + namespace + " run " + clientName + " --image=registry.k8s.io/e2e-test-images/agnhost:2.39 --restart=Never -- /bin/sh -c 'while [ 1 ]; do sleep 100; done'")
+
 	if err != nil {
 		// ignore error (pod already running)
 		return nil
